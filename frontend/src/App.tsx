@@ -17,7 +17,7 @@ export const App: React.FC = () => {
     if (apiClient.getToken()) {
       apiClient
         .getMe()
-        .then((profile) => setUser(profile))
+        .then((profile: UserProfile) => setUser(profile))
         .catch(() => apiClient.logout());
     }
   }, []);

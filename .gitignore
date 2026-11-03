@@ -134,11 +134,11 @@ vite.config.ts.timestamp-*
 
 # --- Air-Gap Boundary: Strict Prohibition of Core Assets ---
 # NEVER allow core packages, graph files, or foundry tooling in this repo
-mahoun/
-api/
+/mahoun/
+/core_api/
 *graph*.dump
 *neo4j*
-foundry/
+/foundry/
 *.onnx
 *.pt
 *.bin

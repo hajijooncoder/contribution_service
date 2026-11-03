@@ -52,7 +52,9 @@ jobs:
       - name: Run Backend Test Suite (161 Hardcore Tests)
         run: |
           cd backend
-          pytest tests/ -v
+          python -m pytest tests/ -v
+        env:
+          PYTHONPATH: .
 
   frontend-ci:
     name: Frontend Typecheck & Build

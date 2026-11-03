@@ -49,7 +49,7 @@ jobs:
       - name: Scan for Accidental Secrets
         run: |
           echo "Scanning for unencrypted private keys, tokens, and password dumps..."
-          if grep -rn "BEGIN RSA PRIVATE KEY" . || grep -rn "BEGIN OPENSSH PRIVATE KEY" .; then
+          if grep -rn --exclude-dir=".github" --exclude-dir=".git" "BEGIN RSA PRIVATE KEY" . || grep -rn --exclude-dir=".github" --exclude-dir=".git" "BEGIN OPENSSH PRIVATE KEY" .; then
             echo "CRITICAL: Private keys detected in repository!"
             exit 1
           fi
