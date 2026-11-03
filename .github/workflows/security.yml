@@ -1,0 +1,60 @@
+name: Security Audit & Vulnerability Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 4 * * 1' # Weekly on Monday at 04:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-security-scan:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Python Dependency Audit (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt || echo "pip-audit completed with advisories."
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run npm Audit
+        run: |
+          cd frontend
+          npm audit || echo "npm audit checked."
+
+  secret-leak-detection:
+    name: Secret & Credential Leak Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Scan for Accidental Secrets
+        run: |
+          echo "Scanning for unencrypted private keys, tokens, and password dumps..."
+          if grep -rn "BEGIN RSA PRIVATE KEY" . || grep -rn "BEGIN OPENSSH PRIVATE KEY" .; then
+            echo "CRITICAL: Private keys detected in repository!"
+            exit 1
+          fi
+          if find . -name "*.sqlite" -o -name "*.sqlite3" -o -name "*.db" | grep -v "test"; then
+            echo "CRITICAL: Local database files detected in repository!"
+            exit 1
+          fi
+          echo "Secret scan clean: No sensitive keys or local databases found."

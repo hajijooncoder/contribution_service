@@ -1,0 +1,146 @@
+# ==============================================================================
+# MAHOUNN Legal Contribution Platform - Hardened Security .gitignore
+# ==============================================================================
+
+# --- Operating System & Editor Artifacts ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# --- Environment & Secrets (STRICTLY PROHIBITED FROM GIT) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.kdbx
+*.asc
+secrets/
+credentials/
+auth_tokens/
+
+# --- Python Environment & Bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+.env/
+
+# --- Testing & Code Quality Artifacts ---
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# --- Local Databases, Dumps & Staging Storage ---
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.sql
+*.dump
+*.rdb
+*.tar.gz
+*.zip
+*.7z
+
+# --- Private Infrastructure & Deployment (STRICTLY PROHIBITED FROM PUBLIC REPO) ---
+deployment/
+docker-compose*.yml
+.env.example
+
+# --- File Storage & Quarantine Paths ---
+storage/
+quarantine/
+uploads/
+temp_storage/
+backend/storage/
+backend/quarantine/
+backend/uploads/
+
+# --- Logs & Runtime State ---
+*.log
+logs/
+*.pid
+audit_ledger.jsonl
+*.audit.log
+
+# --- Node / Frontend Artifacts ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+.eslintcache
+.stylelintcache
+vite.config.ts.timestamp-*
+
+# --- Air-Gap Boundary: Strict Prohibition of Core Assets ---
+# NEVER allow core packages, graph files, or foundry tooling in this repo
+mahoun/
+api/
+*graph*.dump
+*neo4j*
+foundry/
+*.onnx
+*.pt
+*.bin
+*.safetensors
+*.tsbuildinfo

@@ -1,0 +1,33 @@
+name: Controlled Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    name: Package Release Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Generate Release Manifest
+        run: |
+          echo "MAHOUNN Legal Contribution Platform Release" > release_notes.txt
+          echo "Commit: ${{ github.sha }}" >> release_notes.txt
+          echo "Date: $(date -u)" >> release_notes.txt
+          echo "Security Boundary: 100% Decoupled Staging Environment" >> release_notes.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body_path: release_notes.txt
+          draft: false
+          prerelease: false

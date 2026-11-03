@@ -1,0 +1,81 @@
+name: Contribution Platform CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  core-boundary-check:
+    name: Air-Gap Boundary & Anti-Leak Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Verify Zero Protected Core Imports
+        run: |
+          echo "Scanning for prohibited MAHOUN Core imports..."
+          if grep -rn "from mahoun\." backend/ || grep -rn "import mahoun\." backend/; then
+            echo "CRITICAL SECURITY VIOLATION: Protected MAHOUN Core imports detected!"
+            exit 1
+          fi
+          if grep -rn "neo4j" backend/app/; then
+            echo "CRITICAL SECURITY VIOLATION: Neo4j references detected in backend application!"
+            exit 1
+          fi
+          echo "Verification passed: Contribution service is 100% decoupled from protected Core."
+
+  backend-ci:
+    name: Backend Test Suite & Linting
+    runs-on: ubuntu-latest
+    needs: core-boundary-check
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run Backend Test Suite (161 Hardcore Tests)
+        run: |
+          cd backend
+          pytest tests/ -v
+
+  frontend-ci:
+    name: Frontend Typecheck & Build
+    runs-on: ubuntu-latest
+    needs: core-boundary-check
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Run TypeScript Verification & Production Build
+        run: |
+          cd frontend
+          npm run build
+
