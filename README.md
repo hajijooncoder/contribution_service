@@ -78,4 +78,3 @@ pytest tests/ -v
 - [جریان داده‌های حقوقی](docs/DATA_FLOW.md)
 - [مشخصات اندپوینت‌ها و قراردادهای API](docs/API_CONTRACTS.md)
 - [معماری خط لوله CI/CD](docs/CI_CD_ARCHITECTURE.md)
-- [راهنمای جامع استقرار](docs/DEPLOYMENT.md)
