@@ -10,7 +10,11 @@ export type DocumentType =
 export type SubmissionStatus =
   | 'submitted'
   | 'under_review'
+  | 'under_legal_review'
+  | 'needs_correction'
+  | 'in_processing'
   | 'approved'
+  | 'accepted'
   | 'rejected'
   | 'quarantined'
   | 'archived';
@@ -20,7 +24,7 @@ export interface UserProfile {
   email: string;
   full_name?: string;
   role: 'contributor' | 'reviewer' | 'expert' | 'admin';
-  mcc_credits: number;
+  total_credits: number;
 }
 
 export interface TextChange {

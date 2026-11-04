@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="text-xs font-medium text-slate-200">{user.email}</div>
                   <div className="text-[11px] text-amber-400 flex items-center gap-1">
                     <Award className="w-3 h-3" />
-                    <span>{user.mcc_credits} MCC</span>
+                    <span>{user.total_credits} MCC</span>
                   </div>
                 </div>
                 <button

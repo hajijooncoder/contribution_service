@@ -82,14 +82,14 @@ class ApiClient {
 
   // Contributions
   async submitEnhanced(data: EnhancedSubmissionRequest): Promise<EnhancedSubmissionResponse> {
-    return this.request<EnhancedSubmissionResponse>('/contributions/submit/enhanced', {
+    return this.request<EnhancedSubmissionResponse>('/contribution/submit/enhanced', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async getMyHistory(): Promise<ContributionHistoryItem[]> {
-    return this.request<ContributionHistoryItem[]>('/contributions/history');
+    return this.request<ContributionHistoryItem[]>('/contribution/history');
   }
 
   async uploadDocument(file: File): Promise<{ file_id: string; original_name: string; sha256_hash: string }> {
@@ -101,7 +101,7 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(`${API_BASE}/contributions/upload`, {
+    const response = await fetch(`${API_BASE}/contribution/upload`, {
       method: 'POST',
       headers,
       body: formData,
@@ -117,13 +117,13 @@ class ApiClient {
 
   // Reviewer Workspace
   async getReviewQueue(): Promise<ReviewQueueItem[]> {
-    return this.request<ReviewQueueItem[]>('/reviews/queue');
+    return this.request<ReviewQueueItem[]>('/contribution/review/pending');
   }
 
-  async submitReview(submissionId: string, decision: 'approved' | 'rejected', notes?: string) {
-    return this.request(`/reviews/${submissionId}`, {
+  async submitReview(submissionId: string, decision: 'approve' | 'reject' | 'request_correction', notes?: string) {
+    return this.request('/contribution/review/decision', {
       method: 'POST',
-      body: JSON.stringify({ decision, notes }),
+      body: JSON.stringify({ submission_id: submissionId, decision, reviewer_notes: notes }),
     });
   }
 }

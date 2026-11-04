@@ -5,12 +5,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db.session import init_db
 from app.api.v1 import auth, contribution, review, export
+from app.monitoring.health import router as monitoring_router
+from app.monitoring.metrics_collector import get_metrics_collector
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: ensure DB tables and quarantine storage exist
     init_db()
     os.makedirs(settings.QUARANTINE_STORAGE_PATH, exist_ok=True)
+    
+    # Initialize metrics collector
+    get_metrics_collector()
+    
     yield
     # Shutdown
 
@@ -35,6 +41,9 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(contribution.router, prefix="/api/v1")
 app.include_router(review.router, prefix="/api/v1")
 app.include_router(export.router, prefix="/api/v1")
+
+# Mount monitoring endpoints
+app.include_router(monitoring_router)
 
 @app.get("/health")
 def health_check():

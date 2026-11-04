@@ -26,6 +26,8 @@ from app.core.source_validator import validate_official_legal_source_url
 from app.core.scoring_engine import calculate_submission_quality_score
 from app.core.audit_ledger import CryptographicAuditLedger
 from app.core.fsm_quorum import evaluate_proposition_risk
+from app.core.duplicate_detector import ExactDuplicateDetector
+from app.core.text_enhancement import TextFingerprinter
 from app.core.rate_limiter import global_rate_limiter, get_client_ip
 from app.catalog.legal_catalog import get_legal_authorities, get_canonical_law_codes
 from app.core.security import UserRole
@@ -164,6 +166,10 @@ def submit_contribution(
         raw_legal_text=clean_raw_text
     )
 
+    # 6. Compute content_hash and fingerprint for duplicate detection
+    content_hash = ExactDuplicateDetector.compute_hash(clean_raw_text)
+    content_fingerprint = TextFingerprinter.compute_simhash(clean_raw_text)
+
     sub_id = str(uuid.uuid4())
     submission = Submission(
         id=sub_id,
@@ -182,6 +188,8 @@ def submit_contribution(
         awarded_credits=0,
         required_reviewers=required_reviewers,
         current_approvals=0,
+        content_hash=content_hash,
+        content_fingerprint=content_fingerprint,
         status="submitted",
     )
     db.add(submission)
@@ -365,7 +373,10 @@ async def submit_enhanced_contribution(
         changes_json = json.dumps([{"line": ch.line_number, "type": ch.change_type, "reason": ch.reason} for ch in enhancement_result.changes], ensure_ascii=False)
         content_hash, content_fingerprint, text_quality_score, detected_risk = enhancement_result.content_hash, enhancement_result.fingerprint, int(enhancement_result.quality_score), enhancement_result.metadata.risk_level
     else:
-        metadata_json = changes_json = content_hash = content_fingerprint = text_quality_score = None
+        # حتی اگر enhancement نداشتیم، باید content_hash رو برای duplicate detection محاسبه کنیم
+        import hashlib
+        content_hash = hashlib.sha256(enhanced_text.encode('utf-8')).hexdigest()
+        metadata_json = changes_json = content_fingerprint = text_quality_score = None
         detected_risk = risk_level
 
     sub_id = str(uuid.uuid4())
