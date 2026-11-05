@@ -25,54 +25,12 @@
 
 ---
 
-## ۳. ساختار مخزن
-```text
-contribution_service/
-├── backend/          # سرویس وب پایتون / فست‌پی‌آی (FastAPI) + تست‌های ۱۰۰٪
-├── frontend/         # کلاینت مستقل React 19 + TypeScript + Tailwind 4 RTL
-├── .github/          # خطوط لوله یکپارچه‌سازی و تست مداوم (CI/CD Workflows)
-├── docs/             # مستندات جامع معماری، مرزهای امنیتی و قراردادهای API
-├── .gitignore        # تنظیمات فوق‌امنیتی فیلتر فایل‌های محلی و زیرساخت
-└── README.md
-```
-
----
-
-## ۴. راه‌اندازی محیط توسعه لوکال
-
-### اجرای بک‌اند:
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8080
-```
-
-### اجرای فرانت‌اند:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-- رابط کاربری فرانت‌اند: `http://localhost:3000`
-- مستندات API بک‌اند: `http://localhost:8080/docs`
-- وضعیت سلامت سیستم: `http://localhost:8080/health`
-
----
-
-## ۵. تست و اعتبارسنجی کیفیت
-سوئیت تست‌های این پلتفرم شامل **۱۶۱ آزمون خودکار** اعم از تست‌های واحد، تست‌های متخاصم (Adversarial Stress)، بررسی عدم تقلب در داوری (Anti-Sybil)، و حفظ تمامیت دفتر کل است:
-
-```bash
-cd backend
-pytest tests/ -v
-```
-
----
-
-## ۶. مستندات تفصیلی
+## ۳. مستندات تفصیلی
+- [راهنمای جامع کاربران و داوران (فارسی)](docs/USER_GUIDE_FA.md)
+- [سند جامع امنیت و آزمون‌های متخاصم](docs/ADVERSARIAL_SECURITY_AND_RESILIENCE_SPEC.md)
+- [راهنمای توسعه‌دهندگان و معماری سامانه](docs/DEVELOPER_GUIDE.md)
+- [مرجع جامع API و وب‌سوکت](docs/API_REFERENCE.md)
+- [راهنمای آزمون‌ها و اعتبارسنجی کیفیت](docs/TESTING_GUIDE.md)
 - [سند معماری جامع](docs/ARCHITECTURE.md)
 - [مرزهای امنیتی و ایزولاسیون](docs/SECURITY_BOUNDARIES.md)
 - [جریان داده‌های حقوقی](docs/DATA_FLOW.md)
