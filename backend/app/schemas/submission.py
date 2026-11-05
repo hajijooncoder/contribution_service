@@ -67,6 +67,18 @@ class RecentActivityItem(BaseModel):
     date: str
     awarded_credits: int = 0
 
+
+class UrlValidationRequest(BaseModel):
+    """درخواست اعتبارسنجی در لحظه آدرس منبع حقوقی"""
+    url: str = Field(..., max_length=2048, description="نشانی اینترنتی منبع قانونی")
+
+
+class UrlValidationResponse(BaseModel):
+    """پاسخ اعتبارسنجی منبع حقوقی همراه با نام مرجع رسمی"""
+    valid: bool
+    authority: Optional[str] = None
+    error: Optional[str] = None
+
 class ContributionStats(BaseModel):
     total_submissions: int
     pending_submissions: int

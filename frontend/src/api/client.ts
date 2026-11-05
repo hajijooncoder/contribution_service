@@ -6,6 +6,7 @@ import {
   UserProfile,
   PlatformStats,
   RecentActivityItem,
+  UrlValidationResponse,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -100,6 +101,13 @@ class ApiClient {
 
   async getRecentActivity(limit = 5): Promise<RecentActivityItem[]> {
     return this.request<RecentActivityItem[]>(`/contribution/recent-activity?limit=${limit}`);
+  }
+
+  async validateUrl(url: string): Promise<UrlValidationResponse> {
+    return this.request<UrlValidationResponse>('/contribution/validate-url', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
   }
 
   async uploadDocument(file: File): Promise<{ file_id: string; original_name: string; sha256_hash: string }> {

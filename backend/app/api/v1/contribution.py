@@ -12,6 +12,8 @@ from app.schemas.submission import (
     ContributionStats,
     ContributionHistoryItem,
     RecentActivityItem,
+    UrlValidationRequest,
+    UrlValidationResponse,
     EnhancedSubmissionRequest,
     EnhancedSubmissionResponse,
     EnhancedTextPreview,
@@ -318,6 +320,21 @@ def get_submission_status(
             detail="شما مجاز به مشاهده جزئیات این مشارکت نیستید."
         )
     return sub
+
+@router.post("/validate-url", response_model=UrlValidationResponse)
+def validate_url(
+    payload: UrlValidationRequest,
+):
+    """
+    اعتبارسنجی آنی و در لحظه آدرس منبع قانونی.
+    بررسی تعلق دامنه به مراجع رسمی کشور و استخراج نام مرجع.
+    """
+    is_valid, authority, error = validate_official_legal_source_url(payload.url)
+    return UrlValidationResponse(
+        valid=is_valid,
+        authority=authority if is_valid else None,
+        error=error if not is_valid else None
+    )
 
 @router.get("/catalog/authorities")
 def get_catalog_authorities():

@@ -140,3 +140,9 @@ export interface PlatformStats {
   rejected_submissions: number;
   contribution_credits: number;
 }
+
+export interface UrlValidationResponse {
+  valid: boolean;
+  authority?: string | null;
+  error?: string | null;
+}

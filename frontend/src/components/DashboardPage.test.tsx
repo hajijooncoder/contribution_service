@@ -126,7 +126,7 @@ describe('DashboardPage', () => {
     await waitFor(() => {
       expect(screen.getByText('داشبورد کاربری پلتفرم مشارکت')).toBeInTheDocument();
     });
-    expect(screen.getByText('جهت مشاهده سوابق، وارد شوید')).toBeInTheDocument();
+    expect(screen.getByText(/جهت مشاهده سوابق، وارد شوید/)).toBeInTheDocument();
 
     const loginBtn = screen.getAllByText('ورود به حساب کاربری')[0];
     fireEvent.click(loginBtn);

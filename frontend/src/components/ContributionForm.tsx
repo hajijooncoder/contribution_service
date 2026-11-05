@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DocumentType,
   EnhancedSubmissionRequest,
   EnhancedSubmissionResponse,
+  UrlValidationResponse,
 } from '../types';
 import { apiClient } from '../api/client';
 import { TextEnhancementPreviewModal } from './TextEnhancementPreviewModal';
@@ -13,6 +14,9 @@ import {
   Sparkles,
   AlertCircle,
   CheckCircle,
+  ShieldCheck,
+  Loader2,
+  Lock,
 } from 'lucide-react';
 
 interface Props {
@@ -29,6 +33,10 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
   const [contributorNotes, setContributorNotes] = useState('');
   const [skipEnhancement, setSkipEnhancement] = useState(false);
 
+  // URL Real-time validation state
+  const [isValidatingUrl, setIsValidatingUrl] = useState(false);
+  const [urlValidation, setUrlValidation] = useState<UrlValidationResponse | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -37,6 +45,36 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
   const [previewResponse, setPreviewResponse] = useState<EnhancedSubmissionResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
+
+  // Debounced Real-time URL Validation (Deliverable 2)
+  useEffect(() => {
+    const trimmed = sourceUrl.trim();
+    if (trimmed.length < 5) {
+      setUrlValidation(null);
+      setIsValidatingUrl(false);
+      return;
+    }
+
+    setIsValidatingUrl(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.validateUrl(trimmed);
+        setUrlValidation(res);
+        if (res.valid && res.authority && !issuingAuthority) {
+          setIssuingAuthority(res.authority);
+        }
+      } catch {
+        setUrlValidation({
+          valid: false,
+          error: 'خطا در ارتباط با سرویس اعتبارسنجی منبع.',
+        });
+      } finally {
+        setIsValidatingUrl(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [sourceUrl]);
 
   const handleSubmit = async (e: React.FormEvent, force = false) => {
     e.preventDefault();
@@ -202,12 +240,12 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
           </div>
         </div>
 
-        {/* Source URL with Whitelist Hint */}
+        {/* Source URL with Whitelist Hint & Real-time Validation (Deliverable 2) */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-semibold text-slate-300">لینک منبع رسمی (دولت/قوه قضاییه)</label>
             <span className="text-[11px] text-amber-500/90 font-mono">
-              دامنه معتبر: dotic.ir, majlis.ir, rooznamehrasmi.ir, ...
+              دامنه معتبر: rrk.ir, dotic.ir, rc.majlis.ir, qavanin.ir, ...
             </span>
           </div>
           <div className="relative">
@@ -216,18 +254,56 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
               required
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="https://rc.majlis.ir/fa/law/show/..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              placeholder="https://rrk.ir/laws/show/... یا https://rc.majlis.ir/fa/law/..."
+              className={`w-full bg-slate-950 border rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:ring-1 ${
+                urlValidation?.valid
+                  ? 'border-emerald-500/70 focus:border-emerald-500 focus:ring-emerald-500'
+                  : urlValidation && !urlValidation.valid
+                  ? 'border-rose-500/70 focus:border-rose-500 focus:ring-rose-500'
+                  : 'border-slate-800 focus:border-amber-500 focus:ring-amber-500'
+              }`}
             />
             <Globe className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
           </div>
+
+          {/* Real-time Validation Feedback */}
+          {isValidatingUrl && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-amber-400/90">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>در حال اعتبارسنجی دامنه مرجع رسمی...</span>
+            </div>
+          )}
+
+          {!isValidatingUrl && urlValidation?.valid && (
+            <div className="mt-2 flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                مرجع رسمی تایید شد: <strong>{urlValidation.authority}</strong>
+              </span>
+            </div>
+          )}
+
+          {!isValidatingUrl && urlValidation && !urlValidation.valid && (
+            <div className="mt-2 flex items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{urlValidation.error}</span>
+            </div>
+          )}
         </div>
 
         {/* Legal Text */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-semibold text-slate-300">متن کامل ماده یا سند حقوقی</label>
-            <span className="text-xs text-slate-500 font-mono">{rawLegalText.length} کاراکتر</span>
+            <span
+              className={`text-xs font-mono ${
+                rawLegalText.length > 10000 || (rawLegalText.length > 0 && rawLegalText.length < 20)
+                  ? 'text-rose-400 font-bold'
+                  : 'text-slate-400'
+              }`}
+            >
+              {rawLegalText.length.toLocaleString('fa-IR')} / ۱۰٬۰۰۰ نویسه
+            </span>
           </div>
           <textarea
             required
@@ -237,6 +313,21 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
             placeholder="متن کامل ماده، تبصره‌ها و مفاد قانونی را در این قسمت وارد کنید..."
             className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-sans leading-relaxed"
           />
+          {rawLegalText.length > 0 && rawLegalText.length < 20 && (
+            <p className="mt-1 text-xs text-rose-400">متن حقوقی باید حداقل ۲۰ نویسه داشته باشد.</p>
+          )}
+          {rawLegalText.length > 10000 && (
+            <p className="mt-1 text-xs text-rose-400">متن حقوقی نباید بیشتر از ۱۰٬۰۰۰ نویسه باشد.</p>
+          )}
+        </div>
+
+        {/* Air-gap Policy Callout (from Lovable) */}
+        <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 flex items-start gap-3 border-r-2 border-r-amber-500">
+          <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-xs leading-relaxed text-slate-300">
+            <span className="font-bold text-amber-400">مشارکت مطلقاً به معنای دسترسی مستقیم به پایگاه داده نیست:</span>{' '}
+            تمام محتوای ارسالی ابتدا قرنطینه و توسط داوران همتا ارزیابی می‌شود و مستقیماً وارد گراف دانش مرجع نخواهد شد.
+          </div>
         </div>
 
         {/* Options */}

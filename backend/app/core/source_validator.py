@@ -6,6 +6,8 @@ OFFICIAL_LEGAL_DOMAINS = {
     # 1. Official Gazette of the Islamic Republic of Iran (Highest Authority)
     "rooznamehrasmi.ir": "روزنامه رسمی جمهوری اسلامی ایران",
     "www.rooznamehrasmi.ir": "روزنامه رسمی جمهوری اسلامی ایران",
+    "rrk.ir": "روزنامه رسمی جمهوری اسلامی ایران",
+    "www.rrk.ir": "روزنامه رسمی جمهوری اسلامی ایران",
     
     # 2. Islamic Parliament Research Center
     "rc.majlis.ir": "مرکز پژوهش‌های مجلس شورای اسلامی",

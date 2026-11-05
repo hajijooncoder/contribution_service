@@ -40,10 +40,15 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-slate-800/80 pt-6 flex flex-col sm:flex-row items-center justify-between text-slate-500">
-          <div>© {new Date().getFullYear()} پلتفرم مشارکت آزاد MAHOUNN. تمامی حقوق محفوظ است.</div>
-          <div className="mt-4 sm:mt-0 font-mono text-[11px] text-amber-500/80">
-            Decoupled Architecture · Consensus Quorum FSM · SimHash Detection
+        <div className="border-t border-slate-800/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-300 font-mono">Mahoun<span className="text-amber-400">N</span></span>
+            <span>·</span>
+            <span>© {new Date().getFullYear()} پلتفرم مشارکت حقوقی MAHOUNN</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-medium text-amber-400/90">
+            <Shield className="w-3.5 h-3.5 text-amber-400" />
+            <span>اعتماد · شفافیت · مشارکت · تأیید · اثر</span>
           </div>
         </div>
       </div>

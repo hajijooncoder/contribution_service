@@ -32,6 +32,7 @@ vi.mock('../api/client', () => ({
     getReviewQueue: vi.fn(),
     submitReview: vi.fn(),
     uploadDocument: vi.fn(),
+    validateUrl: vi.fn().mockResolvedValue({ valid: true, authority: 'روزنامه رسمی جمهوری اسلامی ایران' }),
   },
 }));
 
