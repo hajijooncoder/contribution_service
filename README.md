@@ -1,5 +1,5 @@
 # MAHOUNN Legal Contribution Platform
-### سامانه آزاد مشارکت و جمع‌سپاری پیکره دانش حقوقی ایران
+### سامانه آزاد مشارکت و جمع‌سپاری گراف دانش حقوقی ایران
 
 [![Contribution Platform CI](https://github.com/hajijooncoder/contribution_service/actions/workflows/ci.yml/badge.svg)](https://github.com/hajijooncoder/contribution_service/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/hajijooncoder/contribution_service/actions/workflows/security.yml/badge.svg)](https://github.com/hajijooncoder/contribution_service/actions/workflows/security.yml)
