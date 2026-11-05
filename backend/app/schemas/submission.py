@@ -60,6 +60,13 @@ class ContributionSubmissionOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class RecentActivityItem(BaseModel):
+    id: str
+    title: str
+    status: str
+    date: str
+    awarded_credits: int = 0
+
 class ContributionStats(BaseModel):
     total_submissions: int
     pending_submissions: int

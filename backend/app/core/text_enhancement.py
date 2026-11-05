@@ -13,7 +13,7 @@ import hashlib
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set, Tuple
 import logging
 
@@ -762,7 +762,7 @@ class LegalTextEnhancer:
             content_hash=content_hash,
             changes=all_changes,
             quality_score=quality_score,
-            enhancement_timestamp=datetime.utcnow().isoformat()
+            enhancement_timestamp=datetime.now(timezone.utc).isoformat()
         )
 
 # Convenience function for direct use

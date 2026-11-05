@@ -4,6 +4,8 @@ import {
   ContributionHistoryItem,
   ReviewQueueItem,
   UserProfile,
+  PlatformStats,
+  RecentActivityItem,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -90,6 +92,14 @@ class ApiClient {
 
   async getMyHistory(): Promise<ContributionHistoryItem[]> {
     return this.request<ContributionHistoryItem[]>('/contribution/history');
+  }
+
+  async getStats(): Promise<PlatformStats> {
+    return this.request<PlatformStats>('/contribution/stats');
+  }
+
+  async getRecentActivity(limit = 5): Promise<RecentActivityItem[]> {
+    return this.request<RecentActivityItem[]>(`/contribution/recent-activity?limit=${limit}`);
   }
 
   async uploadDocument(file: File): Promise<{ file_id: string; original_name: string; sha256_hash: string }> {

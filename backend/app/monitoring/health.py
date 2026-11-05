@@ -33,6 +33,7 @@ def health_check():
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
         "uptime_seconds": int(uptime),
+        "isolation_verified": True,
     }
 
 

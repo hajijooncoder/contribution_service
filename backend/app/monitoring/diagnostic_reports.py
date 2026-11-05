@@ -9,7 +9,7 @@ Provides:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 from uuid import uuid4
 
@@ -109,7 +109,7 @@ class DiagnosticReportGenerator:
         if not anomaly_alerts:
             return DiagnosticReport(
                 report_id=str(uuid4()),
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 trigger=trigger,
                 severity="low",
                 affected_metrics=[],
@@ -164,7 +164,7 @@ class DiagnosticReportGenerator:
         
         return DiagnosticReport(
             report_id=str(uuid4()),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             trigger=trigger,
             severity=overall_severity,
             affected_metrics=affected_metrics,

@@ -11,6 +11,7 @@ from app.schemas.submission import (
     ContributionSubmissionOut,
     ContributionStats,
     ContributionHistoryItem,
+    RecentActivityItem,
     EnhancedSubmissionRequest,
     EnhancedSubmissionResponse,
     EnhancedTextPreview,
@@ -231,6 +232,34 @@ def get_stats(
         rejected_submissions=rejected,
         contribution_credits=credits
     )
+
+@router.get("/recent-activity", response_model=List[RecentActivityItem])
+def get_recent_activity(
+    limit: int = 5,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns the most recent activities for the current authenticated user.
+    Used by the main Dashboard for real-time progress tracking.
+    """
+    submissions = (
+        db.query(Submission)
+        .filter(Submission.submitter_id == current_user.id)
+        .order_by(Submission.updated_at.desc())
+        .limit(max(1, min(limit, 20)))
+        .all()
+    )
+    return [
+        RecentActivityItem(
+            id=sub.id,
+            title=sub.legal_document_name,
+            status=sub.status,
+            date=(sub.updated_at or sub.created_at).isoformat(),
+            awarded_credits=sub.awarded_credits or 0
+        )
+        for sub in submissions
+    ]
 
 @router.get("/history", response_model=List[ContributionHistoryItem])
 def get_history(

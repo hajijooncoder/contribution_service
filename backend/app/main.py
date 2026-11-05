@@ -42,15 +42,5 @@ app.include_router(contribution.router, prefix="/api/v1")
 app.include_router(review.router, prefix="/api/v1")
 app.include_router(export.router, prefix="/api/v1")
 
-# Mount monitoring endpoints
+# Mount monitoring endpoints (includes /health, /health/detailed, /metrics)
 app.include_router(monitoring_router)
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": "contribution_service",
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT,
-        "isolation_verified": True
-    }

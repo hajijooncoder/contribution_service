@@ -8,7 +8,7 @@ Provides:
 - Safe deletion with transaction support
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 from sqlalchemy.orm import Session
 
@@ -59,7 +59,7 @@ class RetentionManager:
             raise ValueError(f"خط‌مشی {policy_name} تعریف نشده است")
         
         retention_days = self.policies[policy_name]
-        cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
         deleted_count = 0
         
         try:

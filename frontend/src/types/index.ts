@@ -124,3 +124,19 @@ export interface ReviewQueueItem {
   detected_risk_level: string;
   created_at: string;
 }
+
+export interface RecentActivityItem {
+  id: string;
+  title: string;
+  status: SubmissionStatus;
+  date: string;
+  awarded_credits?: number;
+}
+
+export interface PlatformStats {
+  total_submissions: number;
+  pending_submissions: number;
+  accepted_submissions: number;
+  rejected_submissions: number;
+  contribution_credits: number;
+}

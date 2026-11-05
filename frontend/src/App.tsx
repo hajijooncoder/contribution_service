@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { DashboardPage } from './components/DashboardPage';
 import { ContributionForm } from './components/ContributionForm';
 import { ContributionHistory } from './components/ContributionHistory';
 import { ReviewerQueue } from './components/ReviewerQueue';
@@ -10,7 +11,7 @@ import { UserProfile } from './types';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<'submit' | 'history' | 'reviewer'>('submit');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'submit' | 'history' | 'reviewer'>('dashboard');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export const App: React.FC = () => {
     apiClient.logout();
     setUser(null);
     if (activeTab === 'reviewer') {
-      setActiveTab('submit');
+      setActiveTab('dashboard');
     }
   };
 
@@ -41,6 +42,13 @@ export const App: React.FC = () => {
       />
 
       <main className="flex-1">
+        {activeTab === 'dashboard' && (
+          <DashboardPage
+            user={user}
+            onNavigate={(tab) => setActiveTab(tab)}
+            onLoginClick={() => setIsLoginModalOpen(true)}
+          />
+        )}
         {activeTab === 'submit' && <ContributionForm onSuccess={() => setActiveTab('history')} />}
         {activeTab === 'history' && <ContributionHistory />}
         {activeTab === 'reviewer' && <ReviewerQueue />}
@@ -51,7 +59,10 @@ export const App: React.FC = () => {
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
-        onSuccess={(profile) => setUser(profile)}
+        onSuccess={(profile) => {
+          setUser(profile);
+          setActiveTab('dashboard');
+        }}
       />
     </div>
   );
