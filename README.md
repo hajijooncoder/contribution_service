@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="MAHOUNN Legal Contribution Platform" width="100%" />
+</p>
+
 # MAHOUNN Legal Contribution Platform
 ### سامانه آزاد مشارکت و جمع‌سپاری گراف دانش حقوقی ایران
 
