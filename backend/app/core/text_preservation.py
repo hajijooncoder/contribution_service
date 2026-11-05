@@ -15,6 +15,9 @@ def sanitize_input_text(text: str, max_length: int = 50000) -> str:
     # 1. Remove dangerous binary control characters (preserve normal newlines and tabs)
     clean = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
 
+    # 1b. Strip invisible zero-width steganography characters (ZWSP, ZWJ, BOM), preserving legitimate Persian ZWNJ (\u200c)
+    clean = re.sub(r"[\u200b\u200d\ufeff]", "", clean)
+
     # 2. Strip ALL HTML tags (including <b>, <div>, <script>, etc.)
     #    This must run before the script-content removal so that
     #    <script>alert('xss')</script> → "alert('xss')" → then caught below.

@@ -57,6 +57,9 @@ def validate_official_legal_source_url(url: str) -> Tuple[bool, str, str]:
     try:
         parsed = urlparse(clean_url)
         hostname = (parsed.hostname or "").lower()
+        # Block non-standard ports
+        if parsed.port and parsed.port not in (80, 443):
+            return False, "", "استفاده از پورت‌های غیرمجاز مجاز نیست."
     except Exception:
         return False, "", "فرمت آدرس اینترنتی نامعتبر است."
 
