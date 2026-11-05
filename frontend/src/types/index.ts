@@ -146,3 +146,30 @@ export interface UrlValidationResponse {
   authority?: string | null;
   error?: string | null;
 }
+
+export interface UserAdminItem {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  role: 'contributor' | 'reviewer' | 'expert' | 'admin';
+  is_active: boolean;
+  total_credits: number;
+  created_at: string;
+}
+
+export interface AdminOverviewStats {
+  total_users: number;
+  total_submissions: number;
+  pending_reviews: number;
+  accepted_submissions: number;
+  rejected_submissions: number;
+  total_credits_awarded: number;
+  quarantine_files_count: number;
+}
+
+export interface AdminExportOverview {
+  total_export_ready: number;
+  schema_version: string;
+  isolation_verified: boolean;
+  export_token_configured: boolean;
+}

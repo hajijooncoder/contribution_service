@@ -1,11 +1,11 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, History, CheckSquare, Award, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, BookOpen, History, CheckSquare, Award, LogIn, LogOut, ShieldCheck, Shield } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface HeaderProps {
   user: UserProfile | null;
-  activeTab: 'dashboard' | 'submit' | 'history' | 'reviewer';
-  setActiveTab: (tab: 'dashboard' | 'submit' | 'history' | 'reviewer') => void;
+  activeTab: 'dashboard' | 'submit' | 'history' | 'reviewer' | 'admin';
+  setActiveTab: (tab: 'dashboard' | 'submit' | 'history' | 'reviewer' | 'admin') => void;
   onLoginClick: () => void;
   onLogoutClick: () => void;
 }
@@ -85,6 +85,20 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <CheckSquare className="w-4 h-4" />
                 <span>میزکار داوری</span>
+              </button>
+            )}
+
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`flex items-center space-x-2 space-x-reverse px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'admin'
+                    ? 'bg-amber-500 text-slate-950 font-semibold shadow-md shadow-amber-500/20'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span>مدیریت سیستم</span>
               </button>
             )}
           </nav>

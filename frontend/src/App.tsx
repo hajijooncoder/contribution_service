@@ -5,13 +5,14 @@ import { DashboardPage } from './components/DashboardPage';
 import { ContributionForm } from './components/ContributionForm';
 import { ContributionHistory } from './components/ContributionHistory';
 import { ReviewerQueue } from './components/ReviewerQueue';
+import { AdminPanel } from './components/AdminPanel';
 import { LoginModal } from './components/LoginModal';
 import { apiClient } from './api/client';
 import { UserProfile } from './types';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'submit' | 'history' | 'reviewer'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'submit' | 'history' | 'reviewer' | 'admin'>('dashboard');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export const App: React.FC = () => {
   const handleLogout = () => {
     apiClient.logout();
     setUser(null);
-    if (activeTab === 'reviewer') {
+    if (activeTab === 'reviewer' || activeTab === 'admin') {
       setActiveTab('dashboard');
     }
   };
@@ -52,6 +53,7 @@ export const App: React.FC = () => {
         {activeTab === 'submit' && <ContributionForm onSuccess={() => setActiveTab('history')} />}
         {activeTab === 'history' && <ContributionHistory />}
         {activeTab === 'reviewer' && <ReviewerQueue />}
+        {activeTab === 'admin' && <AdminPanel currentUser={user} />}
       </main>
 
       <Footer />

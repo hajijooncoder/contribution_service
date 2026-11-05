@@ -7,6 +7,9 @@ import {
   PlatformStats,
   RecentActivityItem,
   UrlValidationResponse,
+  UserAdminItem,
+  AdminOverviewStats,
+  AdminExportOverview,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -143,6 +146,49 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ submission_id: submissionId, decision, reviewer_notes: notes }),
     });
+  }
+
+  // Admin Endpoints
+  async getAdminUsers(role?: string, is_active?: boolean, skip = 0, limit = 50): Promise<{ users: UserAdminItem[]; total: number }> {
+    const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
+    if (role) params.append('role', role);
+    if (is_active !== undefined) params.append('is_active', String(is_active));
+    return this.request<{ users: UserAdminItem[]; total: number }>(`/admin/users?${params.toString()}`);
+  }
+
+  async toggleUserActivation(userId: string, activate: boolean): Promise<{ user_id: string; is_active: boolean; message: string }> {
+    return this.request(`/admin/users/${userId}/activate`, {
+      method: 'PUT',
+      body: JSON.stringify({ activate }),
+    });
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<{ user_id: string; role: string; message: string }> {
+    return this.request(`/admin/users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async getAdminStats(): Promise<AdminOverviewStats> {
+    return this.request<AdminOverviewStats>('/admin/stats/overview');
+  }
+
+  async getAdminExportOverview(): Promise<AdminExportOverview> {
+    return this.request<AdminExportOverview>('/admin/export/overview');
+  }
+
+  async downloadDatasetJsonl(token: string): Promise<Blob> {
+    const response = await fetch(`${API_BASE}/internal/export/dataset.jsonl`, {
+      headers: {
+        'X-Gateway-Token': token,
+      },
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || 'خطا در بارگیری بسته داده‌های استخراجی.');
+    }
+    return response.blob();
   }
 }
 
