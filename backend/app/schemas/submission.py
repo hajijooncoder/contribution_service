@@ -94,6 +94,24 @@ class ContributionHistoryItem(BaseModel):
     verification_result: Optional[str] = None
     earned_credits: int = 0
 
+class ContributionSearchItem(BaseModel):
+    id: str
+    date: str
+    legal_document_name: str
+    source_title: Optional[str] = None
+    document_type: str
+    issuing_authority: str
+    status: str
+    quality_score: float = 0.0
+    awarded_credits: int = 0
+    submitter_id: Optional[str] = None
+
+class ContributionSearchResponse(BaseModel):
+    items: List[ContributionSearchItem]
+    total: int
+    skip: int
+    limit: int
+
 class FileUploadResponse(BaseModel):
     file_id: str
     original_filename: str

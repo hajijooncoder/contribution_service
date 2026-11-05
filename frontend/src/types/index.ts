@@ -173,3 +173,32 @@ export interface AdminExportOverview {
   isolation_verified: boolean;
   export_token_configured: boolean;
 }
+
+export interface SearchFilterParams {
+  q?: string;
+  document_type?: string;
+  issuing_authority?: string;
+  status_filter?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export interface ContributionSearchItem {
+  id: string;
+  date: string;
+  legal_document_name: string;
+  source_title?: string;
+  document_type: string;
+  issuing_authority: string;
+  status: string;
+  quality_score: number;
+  awarded_credits: number;
+  submitter_id?: string;
+}
+
+export interface ContributionSearchResponse {
+  items: ContributionSearchItem[];
+  total: number;
+  skip: number;
+  limit: number;
+}

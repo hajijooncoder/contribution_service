@@ -11,6 +11,8 @@ from app.schemas.submission import (
     ContributionSubmissionOut,
     ContributionStats,
     ContributionHistoryItem,
+    ContributionSearchItem,
+    ContributionSearchResponse,
     RecentActivityItem,
     UrlValidationRequest,
     UrlValidationResponse,
@@ -294,6 +296,88 @@ def get_history(
             earned_credits=sub.awarded_credits
         ))
     return result
+
+@router.get("/search", response_model=ContributionSearchResponse)
+def search_contributions(
+    q: Optional[str] = None,
+    document_type: Optional[str] = None,
+    issuing_authority: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Search and filter contribution submissions.
+    Supports full text queries across legal title, raw text, and notes,
+    as well as exact filters on document type, authority, and review status.
+    Respects role isolation: regular contributors see only their own items,
+    while reviewers and administrators can search across the full system.
+    """
+    query = db.query(Submission)
+
+    # Role-based scoping
+    if current_user.role not in [UserRole.REVIEWER, UserRole.ADMIN]:
+        query = query.filter(Submission.submitter_id == current_user.id)
+
+    # Text keyword search
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        query = query.filter(
+            (Submission.legal_document_name.ilike(term)) |
+            (Submission.source_title.ilike(term)) |
+            (Submission.issuing_authority.ilike(term)) |
+            (Submission.raw_legal_text.ilike(term)) |
+            (Submission.contributor_notes.ilike(term))
+        )
+
+    # Document type filter
+    if document_type and document_type.strip():
+        query = query.filter(Submission.document_type == document_type.strip())
+
+    # Issuing authority filter
+    if issuing_authority and issuing_authority.strip():
+        query = query.filter(Submission.issuing_authority.ilike(f"%{issuing_authority.strip()}%"))
+
+    # Status filter
+    if status_filter and status_filter.strip():
+        query = query.filter(Submission.status == status_filter.strip())
+
+    total = query.count()
+    limit_clamped = max(1, min(limit, 100))
+    skip_clamped = max(0, skip)
+
+    results = (
+        query
+        .order_by(Submission.created_at.desc())
+        .offset(skip_clamped)
+        .limit(limit_clamped)
+        .all()
+    )
+
+    items = [
+        ContributionSearchItem(
+            id=sub.id,
+            date=sub.created_at.strftime("%Y-%m-%d"),
+            legal_document_name=sub.legal_document_name,
+            source_title=sub.source_title,
+            document_type=sub.document_type,
+            issuing_authority=sub.issuing_authority,
+            status=sub.status,
+            quality_score=float(sub.quality_score or 0),
+            awarded_credits=sub.awarded_credits or 0,
+            submitter_id=sub.submitter_id
+        )
+        for sub in results
+    ]
+
+    return ContributionSearchResponse(
+        items=items,
+        total=total,
+        skip=skip_clamped,
+        limit=limit_clamped
+    )
 
 @router.get("/status/{submission_id}", response_model=ContributionSubmissionOut)
 def get_submission_status(

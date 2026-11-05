@@ -10,6 +10,8 @@ import {
   UserAdminItem,
   AdminOverviewStats,
   AdminExportOverview,
+  SearchFilterParams,
+  ContributionSearchResponse,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -96,6 +98,19 @@ class ApiClient {
 
   async getMyHistory(): Promise<ContributionHistoryItem[]> {
     return this.request<ContributionHistoryItem[]>('/contribution/history');
+  }
+
+  async searchContributions(params: SearchFilterParams = {}): Promise<ContributionSearchResponse> {
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.append('q', params.q);
+    if (params.document_type) searchParams.append('document_type', params.document_type);
+    if (params.issuing_authority) searchParams.append('issuing_authority', params.issuing_authority);
+    if (params.status_filter) searchParams.append('status_filter', params.status_filter);
+    if (params.skip !== undefined) searchParams.append('skip', String(params.skip));
+    if (params.limit !== undefined) searchParams.append('limit', String(params.limit));
+
+    const qs = searchParams.toString();
+    return this.request<ContributionSearchResponse>(`/contribution/search${qs ? `?${qs}` : ''}`);
   }
 
   async getStats(): Promise<PlatformStats> {
