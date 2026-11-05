@@ -5,6 +5,7 @@ from app.api.deps import get_db, require_reviewer
 from app.db.models import User, Submission
 from app.schemas.review import PendingReviewItem, ReviewDecision
 from app.core.fsm_quorum import QuorumReviewFSM
+from app.websocket.manager import ws_manager
 
 router = APIRouter(prefix="/contribution/review", tags=["Review"])
 
@@ -37,7 +38,7 @@ def get_pending_reviews(
     return items
 
 @router.post("/decision")
-def submit_review_decision(
+async def submit_review_decision(
     decision: ReviewDecision,
     db: Session = Depends(get_db),
     current_reviewer: User = Depends(require_reviewer)
@@ -68,6 +69,23 @@ def submit_review_decision(
         )
 
     db.commit()
+
+    # Dispatch real-time WebSocket notification to submitter
+    if sub.submitter_id:
+        try:
+            await ws_manager.send_personal_notification(
+                sub.submitter_id,
+                {
+                    "type": "review_decision_update",
+                    "submission_id": sub.id,
+                    "title": sub.legal_document_name,
+                    "new_status": new_status,
+                    "decision": decision.decision,
+                    "message": f"وضعیت مشارکت '{sub.legal_document_name}' به '{new_status}' تغییر یافت."
+                }
+            )
+        except Exception:
+            pass
 
     return {
         "status": "ok",
