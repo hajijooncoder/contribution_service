@@ -53,8 +53,6 @@ describe('useWebSocket hook', () => {
 
     expect(result.current.isConnected).toBe(true);
 
-    // Simulate notification arriving
-    const activeWs = (useWebSocket as any)._lastWs;
     act(() => {
       result.current.clearLatest();
     });

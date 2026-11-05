@@ -33,7 +33,8 @@ export const ReviewerQueue: React.FC = () => {
   ) => {
     setActionLoading(submissionId);
     try {
-      await apiClient.submitReview(submissionId, decision, notes);
+      const mappedDecision = decision === 'approved' ? 'approve' : 'reject';
+      await apiClient.submitReview(submissionId, mappedDecision, notes);
       setQueue((prev) => prev.filter((item) => item.id !== submissionId));
     } catch (err: any) {
       alert(`خطا در ثبت رأی داوری: ${err.message}`);

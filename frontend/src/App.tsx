@@ -10,7 +10,7 @@ import { LoginModal } from './components/LoginModal';
 import { apiClient } from './api/client';
 import { UserProfile } from './types';
 import { useWebSocket } from './hooks/useWebSocket';
-import { Bell, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -18,7 +18,7 @@ export const App: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Real-time WebSocket connection (Deliverable 5)
-  const { latestNotification, clearLatest, isConnected } = useWebSocket(user ? user.id : null);
+  const { latestNotification, clearLatest } = useWebSocket(user ? user.id : null);
 
   useEffect(() => {
     if (latestNotification) {

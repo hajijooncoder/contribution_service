@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users,
-  Shield,
   BarChart3,
   Download,
   CheckCircle,
@@ -14,7 +13,6 @@ import {
   Award,
   BookOpen,
   Clock,
-  Layers,
   UserCheck,
   UserX,
 } from 'lucide-react';
