@@ -1,7 +1,189 @@
+/* Vazirmatn Modern WOFF2 Local Fonts (Air-Gapped & High-Performance) */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-300-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url('@fontsource/vazirmatn/files/vazirmatn-arabic-800-normal.woff2') format('woff2');
+}
+
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --navy-base: #030712;
+    --navy-surface: #071527;
+    --navy-card: #0b1e36;
+    --navy-border: #112d4e;
+    --cyan-primary: #00e5ff;
+    --cyan-hover: #38bdf8;
+    --cyan-muted: #0284c7;
+    --cyan-hairline: rgba(0, 229, 255, 0.35);
+    --cyan-hairline-light: rgba(0, 229, 255, 0.18);
+    --parchment-slate: #061325;
+    --parchment-text: #e2e8f0;
+  }
+
   body {
     font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #030712;
+    color: #f1f5f9;
+    direction: rtl;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
+
+  /* Custom subtle cyber dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #030712;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #112d4e;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00e5ff;
+  }
+}
+
+/* Cyber Knowledge Graph geometric grid background (Checkered / Mesh Matrix) */
+.bg-knowledge-grid {
+  background-image: 
+    linear-gradient(to right, rgba(0, 229, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 229, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 1px 1px, rgba(0, 229, 255, 0.28) 1.5px, transparent 0);
+  background-size: 32px 32px, 32px 32px, 32px 32px;
+}
+
+/* Legal Enclave Card Elevation and Border */
+.legal-card-navy {
+  background-color: rgba(7, 21, 39, 0.85);
+  border: 1px solid rgba(17, 45, 78, 0.85);
+  border-top-color: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(3, 7, 18, 0.7);
+}
+
+.legal-card-navy:hover {
+  border-color: rgba(0, 229, 255, 0.5);
+  border-top-color: rgba(0, 229, 255, 0.75);
+}
+
+.cyan-glow {
+  box-shadow: 0 0 25px -5px rgba(0, 229, 255, 0.35);
+}
+
+/* ───── Ultra-thin Cyan Hairline Accents ───── */
+.cyan-hairline-t {
+  position: relative;
+}
+.cyan-hairline-t::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 229, 255, 0.5) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+.cyan-hairline-b {
+  position: relative;
+}
+.cyan-hairline-b::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 229, 255, 0.5) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+.cyan-hairline-border {
+  border: 1px solid rgba(0, 229, 255, 0.25);
+}
+
+.cyan-hairline-border:hover {
+  border-color: rgba(0, 229, 255, 0.55);
+}
+
+/* ───── Animations ───── */
+
+/* Fade-in for modals and toasts */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out both;
+}
+
+/* Gentle slide-up for cards on mount */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.45s ease-out both;
+}
+
+/* Subtle pulse for cyan accents */
+@keyframes cyan-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+.animate-cyan-pulse {
+  animation: cyan-pulse 2.5s ease-in-out infinite;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 229, 255, 0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
 }

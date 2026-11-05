@@ -16,6 +16,8 @@ os.environ["CONTRIBUTION_DATABASE_URL"] = f"sqlite:///{temp_db_path}"
 os.environ["CONTRIBUTION_SECRET_KEY"] = "test-secret-key-32-bytes-minimum-length-for-hmac-sha256"
 os.environ["EXPORT_GATEWAY_TOKEN"] = "test-export-gateway-token"
 os.environ["QUARANTINE_STORAGE_PATH"] = str(temp_quarantine_path)
+os.environ["AUDIT_LEDGER_SECRET"] = "test-audit-ledger-secret-key-32-bytes-minimum-length"
+os.environ["AUDIT_LEDGER_KEY_VERSION"] = "1"
 
 from app.config import settings
 settings.DATABASE_URL = f"sqlite:///{temp_db_path}"

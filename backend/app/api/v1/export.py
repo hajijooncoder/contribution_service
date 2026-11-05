@@ -1,75 +1,94 @@
 import hashlib
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Generator
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.api.deps import get_db, verify_gateway_pull_token
 from app.db.models import Submission, UploadedFile, Review, AuditLog
 from app.core.audit_ledger import CryptographicAuditLedger
+from app.core.exceptions import ExportGatewayError
 
 router = APIRouter(prefix="/internal/export", tags=["Export Pull Gateway"])
 
+MAX_EXPORT_LIMIT = 500
+DEFAULT_EXPORT_LIMIT = 100
+
 def compute_manifest_checksum(payload: dict) -> str:
-    """Computes SHA-256 checksum over normalized JSON payload for transit integrity."""
     encoded = json.dumps(payload, sort_keys=True).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
+def serialize_submission(sub: Submission, latest_review: Optional[Review], file_meta: Optional[dict]) -> dict:
+    return {
+        "submission_id": sub.id,
+        "source_title": sub.source_title,
+        "legal_document_name": sub.legal_document_name,
+        "raw_legal_text": sub.raw_legal_text,
+        "source_url": sub.source_url,
+        "source_domain": sub.source_domain,
+        "quality_score": sub.quality_score,
+        "document_type": sub.document_type,
+        "issuing_authority": sub.issuing_authority,
+        "publication_info": sub.publication_info,
+        "contributor_notes": sub.contributor_notes,
+        "submitted_at": sub.created_at.isoformat(),
+        "approved_at": sub.updated_at.isoformat(),
+        "reviewer_id": latest_review.reviewer_id if latest_review else None,
+        "file": file_meta,
+    }
+
+def get_file_meta(db: Session, file_upload_id: str) -> Optional[dict]:
+    if not file_upload_id:
+        return None
+    f = db.query(UploadedFile).filter(UploadedFile.id == file_upload_id).first()
+    if not f:
+        return None
+    return {
+        "file_id": f.id,
+        "original_filename": f.original_filename,
+        "sha256_hash": f.sha256_hash,
+        "file_size": f.file_size,
+        "detected_mime": f.detected_mime,
+    }
+
+def get_latest_approval(db: Session, submission_id: str) -> Optional[Review]:
+    return db.query(Review).filter(
+        Review.submission_id == submission_id,
+        Review.decision == "approve"
+    ).order_by(Review.created_at.desc()).first()
+
 @router.get("/approved-packages")
 def get_approved_packages(
-    since_timestamp: Optional[str] = Query(None),
-    limit: int = Query(100, le=500),
+    cursor: Optional[str] = Query(None, description="Cursor for pagination (submission ID)"),
+    limit: int = Query(DEFAULT_EXPORT_LIMIT, le=MAX_EXPORT_LIMIT),
     db: Session = Depends(get_db),
     authorized: bool = Depends(verify_gateway_pull_token)
 ):
     """
-    PULL-BASED EXPORT GATEWAY:
-    Invoked by the internal protected Mahoun core (or manual admin export tool)
-    to pull accepted legal packages.
+    PULL-BASED EXPORT GATEWAY with cursor-based pagination.
+    Returns accepted submissions after the cursor.
     """
     query = db.query(Submission).filter(Submission.status == "accepted")
-    submissions = query.order_by(Submission.updated_at.asc()).limit(limit).all()
     
+    if cursor:
+        query = query.filter(Submission.id > cursor)
+    
+    submissions = query.order_by(Submission.id.asc()).limit(limit + 1).all()
+    
+    has_more = len(submissions) > limit
+    if has_more:
+        submissions = submissions[:limit]
+    
+    next_cursor = submissions[-1].id if submissions else None
+
     packages = []
     for sub in submissions:
-        file_meta = None
-        if sub.file_upload_id:
-            f = db.query(UploadedFile).filter(UploadedFile.id == sub.file_upload_id).first()
-            if f:
-                file_meta = {
-                    "file_id": f.id,
-                    "original_filename": f.original_filename,
-                    "sha256_hash": f.sha256_hash,
-                    "file_size": f.file_size,
-                    "detected_mime": f.detected_mime,
-                }
-        
-        latest_review = db.query(Review).filter(
-            Review.submission_id == sub.id,
-            Review.decision == "approve"
-        ).order_by(Review.created_at.desc()).first()
-
-        package_data = {
-            "submission_id": sub.id,
-            "source_title": sub.source_title,
-            "legal_document_name": sub.legal_document_name,
-            "raw_legal_text": sub.raw_legal_text,
-            "source_url": sub.source_url,
-            "source_domain": sub.source_domain,
-            "quality_score": sub.quality_score,
-            "document_type": sub.document_type,
-            "issuing_authority": sub.issuing_authority,
-            "publication_info": sub.publication_info,
-            "contributor_notes": sub.contributor_notes,
-            "submitted_at": sub.created_at.isoformat(),
-            "approved_at": sub.updated_at.isoformat(),
-            "reviewer_id": latest_review.reviewer_id if latest_review else None,
-            "file": file_meta,
-        }
-
+        file_meta = get_file_meta(db, sub.file_upload_id)
+        latest_review = get_latest_approval(db, sub.id)
+        package_data = serialize_submission(sub, latest_review, file_meta)
         transit_hash = compute_manifest_checksum(package_data)
-        
         packages.append({
             "manifest": package_data,
             "staging_transit_sha256": transit_hash
@@ -80,31 +99,69 @@ def get_approved_packages(
     return {
         "count": len(packages),
         "packages": packages,
-        "ledger_checkpoint": checkpoint
+        "ledger_checkpoint": checkpoint,
+        "pagination": {
+            "next_cursor": next_cursor,
+            "has_more": has_more,
+            "limit": limit
+        }
     }
+
+@router.get("/approved-packages/stream")
+def stream_approved_packages(
+    limit: int = Query(MAX_EXPORT_LIMIT, le=MAX_EXPORT_LIMIT),
+    db: Session = Depends(get_db),
+    authorized: bool = Depends(verify_gateway_pull_token)
+):
+    """
+    Streams approved packages as newline-delimited JSON for memory-efficient large exports.
+    """
+    def generate() -> Generator[bytes, None, None]:
+        query = db.query(Submission).filter(Submission.status == "accepted").order_by(Submission.id.asc()).limit(limit)
+        for sub in query.yield_per(50):
+            file_meta = get_file_meta(db, sub.file_upload_id)
+            latest_review = get_latest_approval(db, sub.id)
+            package_data = serialize_submission(sub, latest_review, file_meta)
+            transit_hash = compute_manifest_checksum(package_data)
+            yield json.dumps({
+                "manifest": package_data,
+                "staging_transit_sha256": transit_hash
+            }, ensure_ascii=False).encode("utf-8") + b"\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=mahoun_approved_packages.jsonl"}
+    )
 
 @router.get("/ledger-checkpoint")
 def export_ledger_checkpoint(
     db: Session = Depends(get_db),
     authorized: bool = Depends(verify_gateway_pull_token)
 ):
-    """
-    Returns the latest cryptographic checkpoint of the staging audit ledger
-    for external witness anchoring and verification by the internal core.
-    """
     return CryptographicAuditLedger.get_ledger_checkpoint(db)
 
 @router.get("/dataset.jsonl")
 def export_dataset_jsonl(
+    cursor: Optional[str] = Query(None),
+    limit: int = Query(DEFAULT_EXPORT_LIMIT, le=MAX_EXPORT_LIMIT),
     db: Session = Depends(get_db),
     authorized: bool = Depends(verify_gateway_pull_token)
 ):
     """
-    Exports all accepted legal submissions as a clean JSONL dataset,
-    ready for offline inspection, manual review, and high-quality knowledge graph feeding.
+    Exports accepted legal submissions as JSONL with cursor pagination.
     """
-    submissions = db.query(Submission).filter(Submission.status == "accepted").order_by(Submission.updated_at.asc()).all()
+    query = db.query(Submission).filter(Submission.status == "accepted")
+    if cursor:
+        query = query.filter(Submission.id > cursor)
     
+    submissions = query.order_by(Submission.id.asc()).limit(limit + 1).all()
+    has_more = len(submissions) > limit
+    if has_more:
+        submissions = submissions[:limit]
+    
+    next_cursor = submissions[-1].id if submissions else None
+
     lines = []
     for sub in submissions:
         record = {
@@ -120,24 +177,67 @@ def export_dataset_jsonl(
         }
         lines.append(json.dumps(record, ensure_ascii=False))
 
-    content = "\n".join(lines)
-    return Response(
+    content = "\n".join(lines) + ("\n" if lines else "")
+    
+    response = Response(
         content=content,
+        media_type="application/x-ndjson; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=mahoun_approved_legal_dataset.jsonl"}
+    )
+    if next_cursor:
+        response.headers["X-Next-Cursor"] = next_cursor
+    response.headers["X-Has-More"] = str(has_more).lower()
+    return response
+
+@router.get("/dataset.jsonl/stream")
+def stream_dataset_jsonl(
+    limit: int = Query(MAX_EXPORT_LIMIT, le=MAX_EXPORT_LIMIT),
+    db: Session = Depends(get_db),
+    authorized: bool = Depends(verify_gateway_pull_token)
+):
+    """
+    Streams dataset as JSONL for memory-efficient export.
+    """
+    def generate() -> Generator[bytes, None, None]:
+        query = db.query(Submission).filter(Submission.status == "accepted").order_by(Submission.id.asc()).limit(limit)
+        for sub in query.yield_per(50):
+            record = {
+                "id": sub.id,
+                "title": sub.legal_document_name,
+                "type": sub.document_type,
+                "authority": sub.issuing_authority,
+                "source_url": sub.source_url,
+                "source_domain": sub.source_domain,
+                "quality_score": sub.quality_score,
+                "raw_text": sub.raw_legal_text,
+                "approved_at": sub.updated_at.isoformat()
+            }
+            yield json.dumps(record, ensure_ascii=False).encode("utf-8") + b"\n"
+    
+    return StreamingResponse(
+        generate(),
         media_type="application/x-ndjson; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=mahoun_approved_legal_dataset.jsonl"}
     )
 
 @router.get("/dataset.txt", response_class=PlainTextResponse)
 def export_dataset_txt(
+    cursor: Optional[str] = Query(None),
+    limit: int = Query(DEFAULT_EXPORT_LIMIT, le=MAX_EXPORT_LIMIT),
     db: Session = Depends(get_db),
     authorized: bool = Depends(verify_gateway_pull_token)
 ):
-    """
-    Exports all accepted legal submissions as a single human-readable clean text file,
-    separated by standard section dividers for direct manual inspection.
-    """
-    submissions = db.query(Submission).filter(Submission.status == "accepted").order_by(Submission.updated_at.asc()).all()
+    query = db.query(Submission).filter(Submission.status == "accepted")
+    if cursor:
+        query = query.filter(Submission.id > cursor)
     
+    submissions = query.order_by(Submission.id.asc()).limit(limit + 1).all()
+    has_more = len(submissions) > limit
+    if has_more:
+        submissions = submissions[:limit]
+    
+    next_cursor = submissions[-1].id if submissions else None
+
     sections = []
     for idx, sub in enumerate(submissions, 1):
         sec = [
@@ -155,10 +255,14 @@ def export_dataset_txt(
         sections.append("\n".join(sec))
 
     full_text = "\n\n".join(sections)
-    return PlainTextResponse(
+    response = PlainTextResponse(
         content=full_text,
         headers={"Content-Disposition": "attachment; filename=mahoun_legal_dataset.txt"}
     )
+    if next_cursor:
+        response.headers["X-Next-Cursor"] = next_cursor
+    response.headers["X-Has-More"] = str(has_more).lower()
+    return response
 
 @router.get("/package-file/{file_id}")
 def download_quarantined_file(
@@ -166,23 +270,13 @@ def download_quarantined_file(
     db: Session = Depends(get_db),
     authorized: bool = Depends(verify_gateway_pull_token)
 ):
-    """
-    Streams raw quarantined file bytes.
-    Enforces exact SHA-256 header for recipient verification.
-    """
     file_record = db.query(UploadedFile).filter(UploadedFile.id == file_id).first()
     if not file_record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="فایل پیوست یافت نشد."
-        )
+        raise ExportGatewayError("فایل پیوست یافت نشد.", status_code=404)
 
     file_path = Path(file_record.storage_path)
     if not file_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="فایل فیزیکی در قرنطینه یافت نشد."
-        )
+        raise ExportGatewayError("فایل فیزیکی در قرنطینه یافت نشد.", status_code=404)
 
     return FileResponse(
         path=str(file_path),
@@ -200,13 +294,9 @@ def mark_submission_ingested(
     db: Session = Depends(get_db),
     authorized: bool = Depends(verify_gateway_pull_token)
 ):
-    """
-    Acknowledges receipt and ingestion by internal secure core or manual workflow.
-    Transitions staging status to 'in_processing'.
-    """
     sub = db.query(Submission).filter(Submission.id == submission_id).first()
     if not sub:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="مشارکت یافت نشد.")
+        raise ExportGatewayError("مشارکت یافت نشد.", status_code=404)
 
     sub.status = "in_processing"
     

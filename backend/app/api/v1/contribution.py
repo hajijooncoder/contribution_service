@@ -1,10 +1,12 @@
 import json
 import uuid
+import hashlib
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.api.deps import get_db, get_current_user, get_optional_current_user, get_or_create_guest_user
+from sqlalchemy.orm import selectinload
+from app.api.deps import get_db, get_current_user, get_optional_current_user
 from app.db.models import User, Submission, UploadedFile, Review
 from app.schemas.submission import (
     SubmissionCreate,
@@ -36,6 +38,7 @@ from app.core.text_enhancement import TextFingerprinter
 from app.core.rate_limiter import global_rate_limiter, get_client_ip
 from app.catalog.legal_catalog import get_legal_authorities, get_canonical_law_codes
 from app.core.security import UserRole
+from app.core.exceptions import ValidationError, QuarantineError, DuplicateError, QuorumError
 
 router = APIRouter(prefix="/contribution", tags=["Contribution"])
 quarantine_mgr = QuarantineManager()
@@ -45,19 +48,18 @@ async def upload_file(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Upload a legal document file into quarantine.
     Preserves exact byte-level integrity, calculates SHA-256,
     and isolates the file away from execution.
     """
-    user = current_user or get_or_create_guest_user(db)
     client_ip = get_client_ip(request)
     
     # Anti-flood rate limiting (IP-based and User-based)
     if not global_rate_limiter.is_allowed(key=f"upload_ip_{client_ip}", limit=30, window_seconds=60) or \
-       not global_rate_limiter.is_allowed(key=f"upload_user_{user.id}", limit=30, window_seconds=60):
+       not global_rate_limiter.is_allowed(key=f"upload_user_{current_user.id}", limit=30, window_seconds=60):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="تعداد فایل‌های آپلودی بیش از حد مجاز است."
@@ -70,11 +72,11 @@ async def upload_file(
             original_filename=file.filename or "uploaded_document"
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise QuarantineError(str(e))
 
     uploaded_file = UploadedFile(
         id=quarantine_record["file_id"],
-        submitter_id=user.id,
+        submitter_id=current_user.id,
         original_filename=quarantine_record["original_filename"],
         stored_filename=quarantine_record["stored_filename"],
         storage_path=quarantine_record["storage_path"],
@@ -88,7 +90,7 @@ async def upload_file(
     
     CryptographicAuditLedger.append_entry(
         db=db,
-        actor_id=user.id,
+        actor_id=current_user.id,
         action="FILE_UPLOAD_QUARANTINED",
         target_id=uploaded_file.id,
         details=f"SHA256={uploaded_file.sha256_hash}, Size={uploaded_file.file_size}, Mime={uploaded_file.detected_mime}"
@@ -102,19 +104,18 @@ def submit_contribution(
     request: Request,
     submission_in: SubmissionCreate,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Submits a new legal source contribution to staging.
     Enforces official source domain validation, text preservation,
     and computes initial data quality score.
     """
-    user = current_user or get_or_create_guest_user(db)
     client_ip = get_client_ip(request)
 
     # Anti-flood rate limiting (IP-based and User-based)
     if not global_rate_limiter.is_allowed(key=f"submit_ip_{client_ip}", limit=35, window_seconds=60) or \
-       not global_rate_limiter.is_allowed(key=f"submit_user_{user.id}", limit=35, window_seconds=60):
+       not global_rate_limiter.is_allowed(key=f"submit_user_{current_user.id}", limit=35, window_seconds=60):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="تعداد ارسال‌های مشارکت بیش از حد مجاز است. لطفاً کمی صبر کنید."
@@ -123,18 +124,12 @@ def submit_contribution(
     # 1. Enforce Official Legal Source Whitelist
     is_valid_source, authority_title, error_reason = validate_official_legal_source_url(submission_in.source_url)
     if not is_valid_source:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error_reason
-        )
+        raise ValidationError(error_reason)
 
     # 2. Validate legal document name
     clean_legal_doc_name = sanitize_input_text(submission_in.legal_document_name)
     if not validate_legal_title(clean_legal_doc_name):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="عنوان سند قانونی نامعتبر یا بسیار کوتاه است."
-        )
+        raise ValidationError("عنوان سند قانونی نامعتبر یا بسیار کوتاه است.")
 
     clean_source_title = sanitize_input_text(submission_in.source_title)
     clean_raw_text = sanitize_input_text(submission_in.raw_legal_text, max_length=500000)
@@ -175,10 +170,18 @@ def submit_contribution(
     content_hash = ExactDuplicateDetector.compute_hash(clean_raw_text)
     content_fingerprint = TextFingerprinter.compute_simhash(clean_raw_text)
 
+    # 7. Check for exact duplicate BEFORE creating submission
+    existing_exact = db.query(Submission).filter(Submission.content_hash == content_hash).first()
+    if existing_exact:
+        raise DuplicateError(
+            f"این متن دقیقاً قبلاً ثبت شده است (شناسه: {existing_exact.id})",
+            existing_id=existing_exact.id
+        )
+
     sub_id = str(uuid.uuid4())
     submission = Submission(
         id=sub_id,
-        submitter_id=user.id,
+        submitter_id=current_user.id,
         source_title=clean_source_title,
         legal_document_name=clean_legal_doc_name,
         raw_legal_text=clean_raw_text,
@@ -202,7 +205,7 @@ def submit_contribution(
     
     CryptographicAuditLedger.append_entry(
         db=db,
-        actor_id=user.id,
+        actor_id=current_user.id,
         action="CONTRIBUTION_SUBMITTED",
         target_id=sub_id,
         details=f"Document={clean_legal_doc_name}, Source={authority_title}, QualityScore={quality_score}, Risk={risk_level}, QuorumRequired={required_reviewers}"
@@ -436,26 +439,25 @@ async def submit_enhanced_contribution(
     request: Request,
     submission_in: EnhancedSubmissionRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Enhanced submission with text enhancement and duplicate detection"""
-    user = current_user or get_or_create_guest_user(db)
     client_ip = get_client_ip(request)
 
     if not global_rate_limiter.is_allowed(key=f"submit_ip_{client_ip}", limit=35, window_seconds=60) or \
-       not global_rate_limiter.is_allowed(key=f"submit_user_{user.id}", limit=35, window_seconds=60):
+       not global_rate_limiter.is_allowed(key=f"submit_user_{current_user.id}", limit=35, window_seconds=60):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="تعداد ارسال‌های مشارکت بیش از حد مجاز است.")
 
     is_valid_source, authority_title, error_reason = validate_official_legal_source_url(submission_in.source_url)
     if not is_valid_source:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_reason)
+        raise ValidationError(error_reason)
 
     enhancer = LegalTextEnhancer()
 
     if submission_in.skip_enhancement:
         enhanced_text = submission_in.raw_legal_text
         enhancement_result = None
-        quality_score_computed = 50
+        text_quality_score = 50
     else:
         try:
             enhancement_result = enhancer.enhance(
@@ -464,14 +466,15 @@ async def submit_enhanced_contribution(
                 document_type=submission_in.document_type
             )
             enhanced_text = enhancement_result.enhanced
-            quality_score_computed = int(enhancement_result.quality_score)
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"خطا در بهبود کیفیت متن: {str(e)}")
+            text_quality_score = int(enhancement_result.quality_score)
+        except ValueError as e:
+            raise ValidationError(f"خطا در بهبود کیفیت متن: {str(e)}")
 
     detector = SmartDuplicateDetector(db, Submission)
     metadata_dict = {'title': submission_in.legal_document_name, 'document_type': submission_in.document_type, 'authority': authority_title}
     duplicate_report = detector.check_all_levels(text=enhanced_text, metadata=metadata_dict, title=submission_in.legal_document_name)
 
+    # Check for duplicates unless force_submit is set
     if duplicate_report.is_duplicate and not submission_in.force_submit:
         duplicate_result = DuplicateCheckResult(
             is_duplicate=True, level=duplicate_report.level.value, similarity=duplicate_report.similarity,
@@ -493,31 +496,61 @@ async def submit_enhanced_contribution(
         )
         return EnhancedSubmissionResponse(status="preview", submission_id=None, enhanced_preview=preview, duplicate_check=None, message="پیش‌نمایش آماده است.")
 
-    trad_quality, _ = calculate_submission_quality_score(source_url=submission_in.source_url, raw_legal_text=enhanced_text, legal_document_name=submission_in.legal_document_name,
-        issuing_authority=authority_title, publication_info=submission_in.publication_info, contributor_notes=submission_in.contributor_notes, has_file_attached=False)
-    risk_level, required_reviewers = evaluate_proposition_risk(document_type=submission_in.document_type, legal_document_name=submission_in.legal_document_name, raw_legal_text=enhanced_text)
-
+    # Use enhancement quality score if available, otherwise calculate traditional
     if enhancement_result:
+        quality_score = int(enhancement_result.quality_score)
         metadata_json = json.dumps({"article_count": enhancement_result.metadata.article_count, "note_count": enhancement_result.metadata.note_count, "keywords": enhancement_result.metadata.keywords,
             "references": enhancement_result.metadata.references, "risk_level": enhancement_result.metadata.risk_level}, ensure_ascii=False)
         changes_json = json.dumps([{"line": ch.line_number, "type": ch.change_type, "reason": ch.reason} for ch in enhancement_result.changes], ensure_ascii=False)
-        content_hash, content_fingerprint, text_quality_score, detected_risk = enhancement_result.content_hash, enhancement_result.fingerprint, int(enhancement_result.quality_score), enhancement_result.metadata.risk_level
+        content_hash = enhancement_result.content_hash
+        content_fingerprint = enhancement_result.fingerprint
+        detected_risk = enhancement_result.metadata.risk_level
     else:
-        # حتی اگر enhancement نداشتیم، باید content_hash رو برای duplicate detection محاسبه کنیم
-        import hashlib
+        quality_score, _ = calculate_submission_quality_score(source_url=submission_in.source_url, raw_legal_text=enhanced_text, legal_document_name=submission_in.legal_document_name,
+            issuing_authority=authority_title, publication_info=submission_in.publication_info, contributor_notes=submission_in.contributor_notes, has_file_attached=False)
         content_hash = hashlib.sha256(enhanced_text.encode('utf-8')).hexdigest()
-        metadata_json = changes_json = content_fingerprint = text_quality_score = None
-        detected_risk = risk_level
+        content_fingerprint = TextFingerprinter.compute_simhash(enhanced_text)
+        metadata_json = changes_json = None
+        detected_risk = None
+
+    risk_level, required_reviewers = evaluate_proposition_risk(document_type=submission_in.document_type, legal_document_name=submission_in.legal_document_name, raw_legal_text=enhanced_text)
+
+    # Check exact duplicate again with final content_hash (race condition protection)
+    if not submission_in.force_submit:
+        existing_exact = db.query(Submission).filter(Submission.content_hash == content_hash).first()
+        if existing_exact:
+            raise DuplicateError(
+                f"این متن دقیقاً قبلاً ثبت شده است (شناسه: {existing_exact.id})",
+                existing_id=existing_exact.id
+            )
 
     sub_id = str(uuid.uuid4())
-    submission = Submission(id=sub_id, submitter_id=user.id, source_title=submission_in.source_title, legal_document_name=submission_in.legal_document_name, raw_legal_text=enhanced_text,
-        source_url=submission_in.source_url, source_domain=authority_title, document_type=submission_in.document_type, issuing_authority=authority_title, publication_info=submission_in.publication_info,
-        contributor_notes=submission_in.contributor_notes, quality_score=trad_quality, text_quality_score=text_quality_score, required_reviewers=required_reviewers, status="submitted",
-        content_hash=content_hash, content_fingerprint=content_fingerprint, auto_extracted_metadata=metadata_json, enhancement_changes=changes_json, detected_risk_level=detected_risk)
+    submission = Submission(
+        id=sub_id,
+        submitter_id=current_user.id,
+        source_title=submission_in.source_title,
+        legal_document_name=submission_in.legal_document_name,
+        raw_legal_text=enhanced_text,
+        source_url=submission_in.source_url,
+        source_domain=authority_title,
+        document_type=submission_in.document_type,
+        issuing_authority=authority_title,
+        publication_info=submission_in.publication_info,
+        contributor_notes=submission_in.contributor_notes,
+        quality_score=quality_score,
+        text_quality_score=text_quality_score,
+        required_reviewers=required_reviewers,
+        status="submitted",
+        content_hash=content_hash,
+        content_fingerprint=content_fingerprint,
+        auto_extracted_metadata=metadata_json,
+        enhancement_changes=changes_json,
+        detected_risk_level=detected_risk
+    )
     db.add(submission)
     db.flush()
-    CryptographicAuditLedger.append_entry(db=db, actor_id=user.id, action="ENHANCED_CONTRIBUTION_SUBMITTED", target_id=sub_id,
-        details=f"Document={submission_in.legal_document_name}, QualityScore={text_quality_score or 'N/A'}, DuplicateLevel={duplicate_report.level.value}")
+    CryptographicAuditLedger.append_entry(db=db, actor_id=current_user.id, action="ENHANCED_CONTRIBUTION_SUBMITTED", target_id=sub_id,
+        details=f"Document={submission_in.legal_document_name}, QualityScore={quality_score}, DuplicateLevel={duplicate_report.level.value}")
     db.commit()
     db.refresh(submission)
     return EnhancedSubmissionResponse(status="submitted", submission_id=sub_id, enhanced_preview=None, duplicate_check=None, message=f"ثبت شد: {sub_id}")

@@ -1,11 +1,15 @@
 from typing import List
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
 from app.api.deps import get_db, require_reviewer
 from app.db.models import User, Submission
 from app.schemas.review import PendingReviewItem, ReviewDecision
-from app.core.fsm_quorum import QuorumReviewFSM
+from app.core.fsm_quorum import QuorumReviewFSM, QuorumError
 from app.websocket.manager import ws_manager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contribution/review", tags=["Review"])
 
@@ -18,7 +22,9 @@ def get_pending_reviews(
     Returns submissions pending legal review.
     Accessible strictly to users with Reviewer or Admin role.
     """
-    pending = db.query(Submission).filter(
+    pending = db.query(Submission).options(
+        selectinload(Submission.submitter)
+    ).filter(
         Submission.status.in_(["submitted", "under_validation", "under_legal_review"])
     ).order_by(Submission.created_at.asc()).all()
 
@@ -54,14 +60,21 @@ async def submit_review_decision(
             detail="شناسه مشارکت یافت نشد."
         )
 
-    success, new_status, message = QuorumReviewFSM.process_review_decision(
-        db=db,
-        submission=sub,
-        reviewer=current_reviewer,
-        decision=decision.decision,
-        reviewer_notes=decision.reviewer_notes,
-        validation_result=decision.validation_result
-    )
+    try:
+        success, new_status, message = QuorumReviewFSM.process_review_decision(
+            db=db,
+            submission=sub,
+            reviewer=current_reviewer,
+            decision=decision.decision,
+            reviewer_notes=decision.reviewer_notes,
+            validation_result=decision.validation_result
+        )
+    except QuorumError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -84,8 +97,8 @@ async def submit_review_decision(
                     "message": f"وضعیت مشارکت '{sub.legal_document_name}' به '{new_status}' تغییر یافت."
                 }
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket notification to user {sub.submitter_id}: {e}")
 
     return {
         "status": "ok",

@@ -17,6 +17,8 @@ import {
   ShieldCheck,
   Loader2,
   Lock,
+  Scale,
+  Compass,
 } from 'lucide-react';
 
 interface Props {
@@ -46,7 +48,7 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
 
-  // Debounced Real-time URL Validation (Deliverable 2)
+  // Debounced Real-time URL Validation
   useEffect(() => {
     const trimmed = sourceUrl.trim();
     if (trimmed.length < 5) {
@@ -156,45 +158,71 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6">
-      {/* Intro Hero */}
-      <div className="text-center mb-10">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
+    <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 font-sans">
+      {/* Intro Hero Header */}
+      <div className="text-center mb-10 space-y-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#00e5ff]/40 bg-[#0b1e36] text-[11px] font-mono text-[#00e5ff] font-semibold">
+          <Scale className="w-3.5 h-3.5" />
+          <span>CONTRIBUTOR WORKSPACE</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
           به غنی‌سازی پیکره دانش حقوقی ایران کمک کنید
         </h1>
         <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
           منبع رسمی را ارائه کنید. متن حقوقی را ثبت کنید. با تایید داوران امتیاز MCC و رتبه پژوهشی
           دریافت کنید.
         </p>
+
+        {/* 3 Step Guidance Indicator */}
+        <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto text-xs text-right">
+          <div className="p-3 rounded-xl bg-[#071527] border border-[#112d4e] flex items-center gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-[#0b1e36] border border-[#00e5ff]/40 text-[#00e5ff] font-mono font-bold flex items-center justify-center text-[10px]">
+              ۱
+            </span>
+            <span className="text-slate-300 font-medium">مشخصات و استناد به منبع</span>
+          </div>
+          <div className="p-3 rounded-xl bg-[#071527] border border-[#112d4e] flex items-center gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-[#0b1e36] border border-[#00e5ff]/40 text-[#00e5ff] font-mono font-bold flex items-center justify-center text-[10px]">
+              ۲
+            </span>
+            <span className="text-slate-300 font-medium">ثبت متن ماده یا دادنامه</span>
+          </div>
+          <div className="p-3 rounded-xl bg-[#071527] border border-[#112d4e] flex items-center gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-[#0b1e36] border border-[#00e5ff]/40 text-[#00e5ff] font-mono font-bold flex items-center justify-center text-[10px]">
+              ۳
+            </span>
+            <span className="text-slate-300 font-medium">داوری همتا و ثبت در گراف</span>
+          </div>
+        </div>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center space-x-3 space-x-reverse">
+        <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center space-x-3 space-x-reverse shadow-md">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMessage && (
-        <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm flex items-center space-x-3 space-x-reverse">
+        <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center space-x-3 space-x-reverse shadow-md">
           <CheckCircle className="w-5 h-5 flex-shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
 
-      {/* Main Form */}
+      {/* Main Submission Form */}
       <form
         onSubmit={(e) => handleSubmit(e, false)}
-        className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6"
+        className="bg-[#071527] border border-[#112d4e] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6"
       >
-        {/* Document Type & Authority */}
+        {/* Document Type & Issuing Authority */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2">نوع سند حقوقی</label>
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full bg-[#030712] border border-[#112d4e] rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/40 transition-colors"
             >
               <option value="law">قانون مصوب مجلس</option>
               <option value="regulation">آیین‌نامه / تصویب‌نامه هیئت وزیران</option>
@@ -217,7 +245,7 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
                 value={issuingAuthority}
                 onChange={(e) => setIssuingAuthority(e.target.value)}
                 placeholder="مثال: مجلس شورای اسلامی، دیوان عالی کشور"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className="w-full bg-[#030712] border border-[#112d4e] rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/40 transition-colors"
               />
               <Building className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
             </div>
@@ -234,17 +262,17 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
               value={legalDocumentName}
               onChange={(e) => setLegalDocumentName(e.target.value)}
               placeholder="مثال: قانون شوراهای حل اختلاف، رأی وحدت رویه شماره ۸۳۵"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full bg-[#030712] border border-[#112d4e] rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/40 transition-colors"
             />
             <FileText className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
           </div>
         </div>
 
-        {/* Source URL with Whitelist Hint & Real-time Validation (Deliverable 2) */}
+        {/* Source URL with Whitelist Hint & Real-time Validation */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-semibold text-slate-300">لینک منبع رسمی (دولت/قوه قضاییه)</label>
-            <span className="text-[11px] text-amber-500/90 font-mono">
+            <span className="text-[11px] text-[#00e5ff] font-mono">
               دامنه معتبر: rrk.ir, dotic.ir, rc.majlis.ir, qavanin.ir, ...
             </span>
           </div>
@@ -255,27 +283,27 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
               placeholder="https://rrk.ir/laws/show/... یا https://rc.majlis.ir/fa/law/..."
-              className={`w-full bg-slate-950 border rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:ring-1 ${
+              className={`w-full bg-[#030712] border rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:ring-1 ${
                 urlValidation?.valid
-                  ? 'border-emerald-500/70 focus:border-emerald-500 focus:ring-emerald-500'
+                  ? 'border-emerald-500/70 focus:border-emerald-500 focus:ring-emerald-500/40'
                   : urlValidation && !urlValidation.valid
-                  ? 'border-rose-500/70 focus:border-rose-500 focus:ring-rose-500'
-                  : 'border-slate-800 focus:border-amber-500 focus:ring-amber-500'
-              }`}
+                  ? 'border-rose-500/70 focus:border-rose-500 focus:ring-rose-500/40'
+                  : 'border-[#112d4e] focus:border-[#00e5ff] focus:ring-[#00e5ff]/40'
+              } transition-colors`}
             />
             <Globe className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
           </div>
 
           {/* Real-time Validation Feedback */}
           {isValidatingUrl && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-amber-400/90">
+            <div className="mt-2 flex items-center gap-2 text-xs text-[#00e5ff]">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span>در حال اعتبارسنجی دامنه مرجع رسمی...</span>
             </div>
           )}
 
           {!isValidatingUrl && urlValidation?.valid && (
-            <div className="mt-2 flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+            <div className="mt-2 flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
                 مرجع رسمی تایید شد: <strong>{urlValidation.authority}</strong>
@@ -284,14 +312,14 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
           )}
 
           {!isValidatingUrl && urlValidation && !urlValidation.valid && (
-            <div className="mt-2 flex items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+            <div className="mt-2 flex items-center gap-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span>{urlValidation.error}</span>
             </div>
           )}
         </div>
 
-        {/* Legal Text */}
+        {/* Legal Text Input */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-semibold text-slate-300">متن کامل ماده یا سند حقوقی</label>
@@ -311,7 +339,7 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
             value={rawLegalText}
             onChange={(e) => setRawLegalText(e.target.value)}
             placeholder="متن کامل ماده، تبصره‌ها و مفاد قانونی را در این قسمت وارد کنید..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-sans leading-relaxed"
+            className="w-full bg-[#030712] border border-[#112d4e] rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/40 font-sans leading-relaxed transition-colors"
           />
           {rawLegalText.length > 0 && rawLegalText.length < 20 && (
             <p className="mt-1 text-xs text-rose-400">متن حقوقی باید حداقل ۲۰ نویسه داشته باشد.</p>
@@ -321,11 +349,11 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
           )}
         </div>
 
-        {/* Air-gap Policy Callout (from Lovable) */}
-        <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/70 flex items-start gap-3 border-r-2 border-r-amber-500">
-          <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+        {/* Air-gap Policy Callout */}
+        <div className="p-4 rounded-xl border border-[#112d4e] bg-[#030712] flex items-start gap-3 border-r-4 border-r-[#00e5ff] shadow-sm">
+          <Lock className="w-4 h-4 text-[#00e5ff] shrink-0 mt-0.5" />
           <div className="text-xs leading-relaxed text-slate-300">
-            <span className="font-bold text-amber-400">مشارکت مطلقاً به معنای دسترسی مستقیم به پایگاه داده نیست:</span>{' '}
+            <span className="font-bold text-[#00e5ff]">مشارکت مطلقاً به معنای دسترسی مستقیم به پایگاه داده نیست:</span>{' '}
             تمام محتوای ارسالی ابتدا قرنطینه و توسط داوران همتا ارزیابی می‌شود و مستقیماً وارد گراف دانش مرجع نخواهد شد.
           </div>
         </div>
@@ -337,22 +365,22 @@ export const ContributionForm: React.FC<Props> = ({ onSuccess }) => {
             id="skipEnhance"
             checked={skipEnhancement}
             onChange={(e) => setSkipEnhancement(e.target.checked)}
-            className="rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500"
+            className="rounded border-[#112d4e] bg-[#030712] text-[#00e5ff] focus:ring-[#00e5ff]"
           />
           <label htmlFor="skipEnhance" className="text-xs text-slate-400">
             ارسال خام متن بدون پیش‌پردازش هوشمند (صرفاً برای بازبینی انسانی)
           </label>
         </div>
 
-        {/* Submit Button */}
-        <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-          <div className="text-xs text-slate-500">
+        {/* Submit Action */}
+        <div className="pt-4 border-t border-[#112d4e] flex items-center justify-between flex-wrap gap-4">
+          <div className="text-xs text-slate-400">
             تمام مشارکت‌ها قبل از انتشار توسط داوران حقوقی اعتبارسنجی می‌شوند.
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center space-x-2 space-x-reverse px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+            className="flex items-center space-x-2 space-x-reverse px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#00e5ff] via-[#0284c7] to-[#0369a1] hover:from-[#38bdf8] hover:to-[#0284c7] text-white font-bold text-sm transition-all shadow-lg shadow-[#00e5ff]/20 border border-[#00e5ff]/30 disabled:opacity-50"
           >
             <Sparkles className="w-4 h-4" />
             <span>{loading ? 'در حال تحلیل...' : 'پیش‌نمایش و ثبت مشارکت'}</span>

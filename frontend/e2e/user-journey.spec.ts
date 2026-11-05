@@ -6,8 +6,8 @@ test.describe('MAHOUNN Legal Contribution Platform E2E Suite', () => {
 
     // Check title and hero
     await expect(page).toHaveTitle(/MAHOUNN|پلتفرم مشارکت/);
-    await expect(page.locator('text=به رشد دانش حقوقی ایران کمک کنید')).toBeVisible();
-    await expect(page.locator('text=منبع را ارائه کنید. متن را ثبت کنید. مشارکت کنید. اعتبار دریافت کنید.')).toBeVisible();
+    await expect(page.locator('text=عدالت تنها یک هدف نیست...')).toBeVisible();
+    await expect(page.locator('text=پلتفرم توسعه گراف دانش حقوقی ایران با مشارکت حقوقدانان، وکلای دادگستری، دانشجویان حقوق و کلیه متخصصین حقوقی و قضایی ایران...')).toBeVisible();
 
     // Check 5-step pipeline
     await expect(page.locator('text=منبع')).toBeVisible();

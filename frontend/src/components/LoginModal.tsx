@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiClient } from '../api/client';
 import { UserProfile } from '../types';
-import { X, Lock, Mail, UserPlus, AlertCircle } from 'lucide-react';
+import { X, Lock, Mail, UserPlus, AlertCircle, Scale } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -55,23 +55,23 @@ export const LoginModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-right">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#030712]/85 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-fade-in">
+      <div className="bg-[#071527] border border-[#112d4e] border-t-[#00e5ff]/35 rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative text-right">
         <button
           onClick={onClose}
-          className="absolute left-6 top-6 text-slate-400 hover:text-white transition-colors"
+          className="absolute left-6 top-6 text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-[#0b1e36]"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#0b1e36] border border-[#00e5ff]/40 text-[#00e5ff] flex items-center justify-center mx-auto mb-3 shadow-md">
             {isRegister ? <UserPlus className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
           </div>
-          <h3 className="text-xl font-bold text-white">
+          <h3 className="text-xl font-bold text-white tracking-tight">
             {isRegister ? 'ثبت‌نام پژوهشگر جدید' : 'ورود به حساب کاربری'}
           </h3>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-1 leading-relaxed">
             {isRegister
               ? 'با ایجاد حساب از امتیازهای مشارکت و ثبت رسمی اعتبار بهره‌مند شوید'
               : 'جهت پیگیری سوابق و داوری متون وارد شوید'}
@@ -96,7 +96,7 @@ export const LoginModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="مثال: علی محمدی"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500"
+                className="w-full bg-[#030712] border border-[#112d4e] rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-[#00e5ff] transition-colors"
               />
             </div>
           )}
@@ -110,7 +110,7 @@ export const LoginModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="contributor@example.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-amber-500 font-mono"
+                className="w-full bg-[#030712] border border-[#112d4e] rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-[#00e5ff] font-mono transition-colors"
               />
               <Mail className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
             </div>
@@ -125,7 +125,7 @@ export const LoginModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-amber-500 font-mono"
+                className="w-full bg-[#030712] border border-[#112d4e] rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-200 focus:outline-none focus:border-[#00e5ff] font-mono transition-colors"
               />
               <Lock className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
             </div>
@@ -134,20 +134,20 @@ export const LoginModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-all shadow-md shadow-amber-500/20 disabled:opacity-50 mt-2"
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#00e5ff] via-[#0284c7] to-[#0369a1] hover:from-[#38bdf8] hover:to-[#0284c7] text-white font-bold text-sm transition-all shadow-md shadow-[#00e5ff]/20 border border-[#00e5ff]/30 disabled:opacity-50 mt-2"
           >
             {loading ? 'در حال پردازش...' : isRegister ? 'ثبت‌نام و ورود' : 'ورود به سامانه'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-slate-400 border-t border-slate-800 pt-4">
+        <div className="mt-6 text-center text-xs text-slate-400 border-t border-[#112d4e] pt-4">
           {isRegister ? (
             <span>
               قبلاً ثبت‌نام کرده‌اید؟{' '}
               <button
                 type="button"
                 onClick={() => setIsRegister(false)}
-                className="text-amber-400 hover:underline font-semibold"
+                className="text-[#00e5ff] hover:underline font-semibold"
               >
                 وارد شوید
               </button>
@@ -158,7 +158,7 @@ export const LoginModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
               <button
                 type="button"
                 onClick={() => setIsRegister(true)}
-                className="text-amber-400 hover:underline font-semibold"
+                className="text-[#00e5ff] hover:underline font-semibold"
               >
                 ایجاد حساب مشارکت‌کننده
               </button>
